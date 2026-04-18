@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LUXE — Premium Shop</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+  <!--  Supabase JS v2 (must load before all our scripts)  -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <!--  Razorpay  -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ NAVBAR ═══════════════════════════════ -->
+<nav class="navbar" id="navbar">
+  <a href="#" class="nav-brand">
+    <span class="brand-mark">L</span>UXE
+  </a>
+
+  <ul class="nav-links" role="list">
+    <li><a href="#products">Shop</a></li>
+    <li><a href="#about">About</a></li>
+  </ul>
+
+  <div class="nav-actions">
+    <!-- Logged-out state -->
+    <div id="auth-logged-out" class="nav-auth">
+      <button class="btn-nav-ghost" id="open-login-btn">Sign In</button>
+      <button class="btn-nav-primary" id="open-signup-btn">Join</button>
+    </div>
+
+    <!-- Logged-in state -->
+    <div id="auth-logged-in" class="nav-auth hidden">
+      <span class="nav-username" id="user-name-display"></span>
+      <button class="btn-nav-ghost" id="logout-btn">Logout</button>
+    </div>
+
+    <!-- Cart icon -->
+    <button class="cart-icon-btn" id="cart-toggle" aria-label="Open shopping cart">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0"/>
+      </svg>
+      <span class="cart-badge hidden" id="cart-badge">0</span>
+    </button>
+  </div>
+</nav>
+
+
+<!-- ═══════════════════════════════ HERO ════════════════════════════════ -->
+<section class="hero" id="home" aria-label="Hero section">
+  <div class="hero-noise"></div>
+  <div class="hero-content">
+    <p class="hero-eyebrow">New Arrivals — 2026</p>
+    <h1 class="hero-heading">Objects of<br/><em>lasting beauty</em></h1>
+    <p class="hero-body">Curated objects for lives lived with intention. Every piece selected for quality, beauty, and enduring character.</p>
+    <div class="hero-ctas">
+      <a href="#products" class="btn-hero-primary">Explore the Collection</a>
+      <a href="#about" class="btn-hero-ghost">Our Story</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="hero-img-container">
+      <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&q=80" alt="Curated premium products" />
+    </div>
+    <div class="hero-pill">✦ Free shipping on orders ₹999+</div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ TICKER ══════════════════════════════ -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>Free Returns</span><span aria-hidden="true">·</span>
+    <span>Secure Checkout</span><span aria-hidden="true">·</span>
+    <span>Premium Quality</span><span aria-hidden="true">·</span>
+    <span>Worldwide Shipping</span><span aria-hidden="true">·</span>
+    <span>Free Returns</span><span aria-hidden="true">·</span>
+    <span>Secure Checkout</span><span aria-hidden="true">·</span>
+    <span>Premium Quality</span><span aria-hidden="true">·</span>
+    <span>Worldwide Shipping</span><span aria-hidden="true">·</span>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════ PRODUCTS ════════════════════════════════ -->
+<section class="products-section" id="products" aria-labelledby="products-heading">
+  <div class="section-intro">
+    <p class="label-tag">The Collection</p>
+    <h2 id="products-heading" class="section-heading">Curated for you</h2>
+  </div>
+
+  <!-- Category filters -->
+  <div class="filter-bar" role="group" aria-label="Product filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="lifestyle">Lifestyle</button>
+    <button class="filter-btn" data-filter="apparel">Apparel</button>
+    <button class="filter-btn" data-filter="accessories">Accessories</button>
+  </div>
+
+  <!-- Loading state -->
+  <div id="products-loading" class="state-loading" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p>Loading products…</p>
+  </div>
+
+  <!-- Error state (hidden by default) -->
+  <div id="products-error" class="state-error hidden" role="alert">
+    <p class="error-text">Could not load products. Please try again.</p>
+    <button class="btn-retry" onclick="window.productsModule.loadProducts()">↻ Retry</button>
+  </div>
+
+  <!-- Product grid -->
+  <div class="product-grid" id="product-grid" role="list" aria-label="Products"></div>
+</section>
+
+
+<!-- ═══════════════════════════════ ABOUT ═══════════════════════════════ -->
+<section class="about-section" id="about" aria-labelledby="about-heading">
+  <div class="about-text">
+    <p class="label-tag">Our Philosophy</p>
+    <h2 id="about-heading">Less, but better.</h2>
+    <p>We believe in fewer, finer things. Every item in our catalogue is hand-selected — not for trend, but for lasting value. We stand behind every purchase with free returns, Razorpay-secured payments, and real human support.</p>
+  </div>
+  <div class="about-stats" aria-label="Store statistics">
+    <div class="stat-item">
+      <strong>2,400+</strong>
+      <span>Happy customers</span>
+    </div>
+    <div class="stat-item">
+      <strong>150+</strong>
+      <span>Curated products</span>
+    </div>
+    <div class="stat-item">
+      <strong>4.9 ★</strong>
+      <span>Average rating</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════ CART DRAWER ══════════════════════════════ -->
+<div class="cart-overlay" id="cart-overlay" aria-hidden="true"></div>
+
+<aside class="cart-drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping cart" aria-hidden="true">
+  <div class="cart-header">
+    <h2>Shopping Cart</h2>
+    <button class="cart-close-btn" id="cart-close" aria-label="Close cart">✕</button>
+  </div>
+
+  <div class="cart-body">
+    <!-- Empty state -->
+    <div class="cart-empty" id="cart-empty">
+      <svg aria-hidden="true" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0"/>
+      </svg>
+      <p>Your cart is empty</p>
+      <button class="btn-nav-ghost" id="browse-btn">Browse Products</button>
+    </div>
+
+    <!-- Cart items list -->
+    <ul class="cart-items-list" id="cart-items" aria-label="Cart items"></ul>
+  </div>
+
+  <div class="cart-footer hidden" id="cart-footer">
+    <div class="cart-total-row">
+      <span>Total</span>
+      <strong id="cart-total-price">₹0</strong>
+    </div>
+    <button class="btn-checkout" id="checkout-btn">Proceed to Payment</button>
+    <p class="secure-badge">🔒 Secured by Razorpay</p>
+  </div>
+</aside>
+
+
+<!-- ═══════════════════════════ AUTH MODAL ═══════════════════════════════ -->
+<div class="modal-backdrop" id="auth-modal-backdrop" role="presentation" aria-hidden="true"></div>
+
+<div class="auth-modal" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="modal-tab-active" aria-hidden="true">
+  <button class="modal-x-btn" id="modal-close-btn" aria-label="Close">✕</button>
+
+  <!-- Tab switcher -->
+  <div class="modal-tabs" role="tablist">
+    <button class="modal-tab active" id="tab-btn-login"  data-tab="login"  role="tab" aria-selected="true"  aria-controls="panel-login">Sign In</button>
+    <button class="modal-tab"        id="tab-btn-signup" data-tab="signup" role="tab" aria-selected="false" aria-controls="panel-signup">Create Account</button>
+  </div>
+
+  <!-- ── LOGIN PANEL ─────────────────────────────────── -->
+  <div class="modal-panel active" id="panel-login" role="tabpanel" aria-labelledby="tab-btn-login">
+    <h3 class="modal-title">Welcome back</h3>
+    <p class="modal-subtitle">Sign in to your LUXE account</p>
+
+    <!-- Inline message (errors / success) -->
+    <div class="form-message hidden" id="login-message" role="alert" aria-live="assertive"></div>
+
+    <div class="form-field">
+      <label for="login-email">Email address</label>
+      <input
+        type="email"
+        id="login-email"
+        name="email"
+        placeholder="you@example.com"
+        autocomplete="email"
+        aria-required="true"
+      />
+    </div>
+
+    <div class="form-field">
+      <label for="login-password">Password</label>
+      <div class="input-wrap">
+        <input
+          type="password"
+          id="login-password"
+          name="password"
+          placeholder="Your password"
+          autocomplete="current-password"
+          aria-required="true"
+        />
+        <button type="button" class="toggle-pw" data-target="login-password" aria-label="Show password">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <button class="btn-modal-primary" id="login-submit-btn">Sign In</button>
+  </div>
+
+  <!-- ── SIGNUP PANEL ────────────────────────────────── -->
+  <div class="modal-panel" id="panel-signup" role="tabpanel" aria-labelledby="tab-btn-signup">
+    <h3 class="modal-title">Create your account</h3>
+    <p class="modal-subtitle">Join thousands of LUXE customers</p>
+
+    <div class="form-message hidden" id="signup-message" role="alert" aria-live="assertive"></div>
+
+    <div class="form-field">
+      <label for="signup-fullname">Full name</label>
+      <input
+        type="text"
+        id="signup-fullname"
+        name="fullname"
+        placeholder="Your full name"
+        autocomplete="name"
+        aria-required="true"
+      />
+    </div>
+
+    <div class="form-field">
+      <label for="signup-email">Email address</label>
+      <input
+        type="email"
+        id="signup-email"
+        name="email"
+        placeholder="you@example.com"
+        autocomplete="email"
+        aria-required="true"
+      />
+    </div>
+
+    <div class="form-field">
+      <label for="signup-password">Password</label>
+      <div class="input-wrap">
+        <input
+          type="password"
+          id="signup-password"
+          name="password"
+          placeholder="Min. 6 characters"
+          autocomplete="new-password"
+          aria-required="true"
+        />
+        <button type="button" class="toggle-pw" data-target="signup-password" aria-label="Show password">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label for="signup-confirm-password">Confirm password</label>
+      <input
+        type="password"
+        id="signup-confirm-password"
+        name="confirm-password"
+        placeholder="Repeat password"
+        autocomplete="new-password"
+        aria-required="true"
+      />
+    </div>
+
+    <button class="btn-modal-primary" id="signup-submit-btn">Create Account</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════ ORDER CONFIRMATION ═══════════════════════════ -->
+<!-- Injected dynamically by checkout.js — styles in style.css -->
+
+
+<!-- ═══════════════════════════ TOAST ═══════════════════════════════════ -->
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+
+<!-- ═══════════════════════════ FOOTER ══════════════════════════════════ -->
+<footer class="footer">
+  <div class="footer-brand">
+    <span class="brand-mark">L</span>UXE
+  </div>
+  <p>© 2026 LUXE Shop. All rights reserved.</p>
+  <nav class="footer-nav" aria-label="Footer navigation">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Contact</a>
+  </nav>
+</footer>
+
+
+<!-- ═══════════════════════ SCRIPTS ══════════════════════════════════════ -->
+<!--
+  Load order matters:
+    1. supabase-config.js  — creates window.sb + window.safeQuery
+    2. auth.js             — depends on window.sb
+    3. products.js         — depends on window.sb
+    4. checkout.js         — depends on window.sb, auth, products
+    5. main inline block   — wires UI events
+-->
+<script src="supabase-config.js"></script>
+<script src="auth.js"></script>
+<script src="products.js"></script>
+<script src="checkout.js"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── Navbar scroll effect ──────────────────────────────
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 50);
+  }, { passive: true });
+
+  // ── Cart drawer open/close ────────────────────────────
+  const cartDrawer  = document.getElementById('cart-drawer');
+  const cartOverlay = document.getElementById('cart-overlay');
+
+  function openCart() {
+    cartDrawer.classList.add('open');
+    cartDrawer.setAttribute('aria-hidden', 'false');
+    cartOverlay.classList.add('active');
+    cartOverlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('cart-close')?.focus();
+  }
+
+  function closeCart() {
+    cartDrawer.classList.remove('open');
+    cartDrawer.setAttribute('aria-hidden', 'true');
+    cartOverlay.classList.remove('active');
+    cartOverlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    document.getElementById('cart-toggle')?.focus();
+  }
+
+  document.getElementById('cart-toggle') ?.addEventListener('click', openCart);
+  document.getElementById('cart-close')  ?.addEventListener('click', closeCart);
+  document.getElementById('cart-overlay')?.addEventListener('click', closeCart);
+  document.getElementById('browse-btn')  ?.addEventListener('click', () => {
+    closeCart();
+    document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+  });
+
+  // Close cart on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (cartDrawer.classList.contains('open'))                closeCart();
+      if (document.getElementById('auth-modal-backdrop').classList.contains('active')) closeAuthModal();
+    }
+  });
+
+  // ── Auth modal ────────────────────────────────────────
+  const authBackdrop = document.getElementById('auth-modal-backdrop');
+  const authModal    = document.getElementById('auth-modal');
+
+  window.openAuthModal = function (tab = 'login') {
+    authBackdrop.classList.add('active');
+    authBackdrop.setAttribute('aria-hidden', 'false');
+    authModal.classList.add('active');
+    authModal.setAttribute('aria-hidden', 'false');
+    // Activate correct tab
+    document.querySelectorAll('.modal-tab').forEach(t => {
+      const isActive = t.dataset.tab === tab;
+      t.classList.toggle('active', isActive);
+      t.setAttribute('aria-selected', String(isActive));
+    });
+    document.querySelectorAll('.modal-panel').forEach(p => {
+      p.classList.toggle('active', p.id === `panel-${tab}`);
+    });
+    // Focus first input
+    const firstInput = document.querySelector(`#panel-${tab} input`);
+    setTimeout(() => firstInput?.focus(), 100);
+  };
+
+  window.closeAuthModal = function () {
+    authBackdrop.classList.remove('active');
+    authBackdrop.setAttribute('aria-hidden', 'true');
+    authModal.classList.remove('active');
+    authModal.setAttribute('aria-hidden', 'true');
+  };
+
+  document.getElementById('open-login-btn') ?.addEventListener('click', () => window.openAuthModal('login'));
+  document.getElementById('open-signup-btn')?.addEventListener('click', () => window.openAuthModal('signup'));
+  document.getElementById('modal-close-btn')?.addEventListener('click', window.closeAuthModal);
+  authBackdrop.addEventListener('click', window.closeAuthModal);
+
+  // Tab switching inside modal
+  document.querySelectorAll('.modal-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.modal-tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('.modal-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      document.getElementById(`panel-${tab.dataset.tab}`)?.classList.add('active');
+    });
+  });
+
+  // ── Password visibility toggle ────────────────────────
+  document.querySelectorAll('.toggle-pw').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+      input.type = input.type === 'password' ? 'text' : 'password';
+      btn.setAttribute('aria-label', input.type === 'password' ? 'Show password' : 'Hide password');
+    });
+  });
+
+  // ── Product category filters ──────────────────────────
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      window.productsModule?.filterProducts(btn.dataset.filter);
+    });
+  });
+
+  // ── Toast ──────────────────────────────────────────────
+  let toastTimer;
+  window.showToast = function (msg, type = 'success') {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    clearTimeout(toastTimer);
+    el.textContent = msg;
+    el.className   = `toast show ${type}`;
+    toastTimer = setTimeout(() => {
+      el.classList.remove('show');
+    }, 3500);
+  };
+
+})();
+</script>
+</body>
+</html>
